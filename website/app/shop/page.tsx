@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { categories } from "@/data/products";
 import Price from "@/components/Price";
+import AddToCartButton from "@/components/AddToCartButton";
+import CartButton from "@/components/CartButton";
 import { useShopProducts } from "@/lib/useShopProducts";
 
 export default function ShopPage() {
@@ -16,7 +18,7 @@ export default function ShopPage() {
       : products.filter((product) => product.category === active);
 
   return (
-    <main className="min-h-screen bg-surface pb-24 text-ink">
+    <main className="min-h-screen bg-surface pb-44 text-ink">
       {/* 頂部：品牌名稱 */}
       <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
@@ -63,11 +65,11 @@ export default function ShopPage() {
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               {list.map((product) => (
-                <Link
+                <div
                   key={product.id}
-                  href={`/shop/${product.id}`}
-                  className="overflow-hidden rounded-2xl border border-line bg-surface transition active:scale-95"
+                  className="flex flex-col overflow-hidden rounded-2xl border border-line bg-surface"
                 >
+                <Link href={`/shop/${product.id}`} className="block flex-1 transition active:scale-95">
                   <div className="relative flex aspect-square items-center justify-center bg-cream">
                     <span className="text-6xl">{product.emoji}</span>
                     {product.label && (
@@ -90,11 +92,17 @@ export default function ShopPage() {
                     </div>
                   </div>
                 </Link>
+                  <div className="px-3 pb-3">
+                    <AddToCartButton product={product} />
+                  </div>
+                </div>
               ))}
             </div>
           </>
         )}
       </section>
+
+      <CartButton />
     </main>
   );
 }

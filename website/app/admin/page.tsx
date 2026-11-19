@@ -166,12 +166,20 @@ export default function AdminPage() {
       <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
           <span className="text-lg font-black">🛠️ 肉球派對後台</span>
-          <Link
-            href="/member"
-            className="text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
-          >
-            會員頁
-          </Link>
+          <div className="flex gap-4">
+            <Link
+              href="/admin/settings"
+              className="text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
+            >
+              匯款資訊
+            </Link>
+            <Link
+              href="/member"
+              className="text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
+            >
+              會員頁
+            </Link>
+          </div>
         </div>
       </header>
 

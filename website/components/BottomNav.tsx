@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LINE_URL } from "@/components/LineButton";
 
 // href 為 null 代表功能還沒做好，會顯示成灰色、不能點
-const items = [
+// external 代表外部網址（官方 LINE），會開新分頁
+const items: { href: string | null; label: string; icon: string; external?: boolean }[] = [
   { href: "/", label: "首頁", icon: "🏠" },
   { href: "/shop", label: "商城", icon: "🛍️" },
   { href: "/member", label: "寄倉", icon: "📦" },
-  { href: null, label: "LINE", icon: "💬" },
+  { href: LINE_URL || null, label: "LINE", icon: "💬", external: true },
 ];
 
 export default function BottomNav() {
@@ -23,7 +25,7 @@ export default function BottomNav() {
               ? pathname === "/"
               : item.href === "/member"
                 ? pathname.startsWith("/member") || pathname.startsWith("/login")
-                : item.href !== null && pathname.startsWith(item.href);
+                : item.href !== null && !item.external && pathname.startsWith(item.href);
 
           const content = (
             <>
@@ -34,7 +36,16 @@ export default function BottomNav() {
 
           return (
             <li key={item.label}>
-              {item.href ? (
+              {item.href && item.external ? (
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center rounded-xl py-1.5 text-ink-soft"
+                >
+                  {content}
+                </a>
+              ) : item.href ? (
                 <Link
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}

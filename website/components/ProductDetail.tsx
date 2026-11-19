@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import Price from "@/components/Price";
+import AddToCartButton from "@/components/AddToCartButton";
+import CartButton from "@/components/CartButton";
+import LineButton from "@/components/LineButton";
 import { useShopProducts } from "@/lib/useShopProducts";
 
 // 商品頁內容：從 Firestore 讀取，只顯示已上架的商品
@@ -33,7 +36,7 @@ export default function ProductDetail({ id }: { id: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-surface pb-28 text-ink">
+    <main className="min-h-screen bg-surface pb-44 text-ink">
       {/* 頂部：返回商城 */}
       <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="flex items-center px-4 py-3">
@@ -72,14 +75,13 @@ export default function ProductDetail({ id }: { id: string }) {
           {product.description}
         </p>
 
-        {/* LINE 詢問按鈕：等 LINE 官方帳號建立後再接上網址 */}
-        <button
-          disabled
-          className="mt-6 w-full rounded-full bg-disabled py-4 text-lg font-bold text-ink-muted"
-        >
-          LINE 詢問（即將開放）
-        </button>
+        <div className="mt-6 space-y-3">
+          <AddToCartButton product={product} size="lg" />
+          <LineButton />
+        </div>
       </section>
+
+      <CartButton />
     </main>
   );
 }

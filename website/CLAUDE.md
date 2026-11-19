@@ -20,14 +20,22 @@
 
 ## 專案現況
 - Next.js 16.4.6（App Router、沒有 src 資料夾）、TypeScript、Tailwind CSS；專案在 `D:\paw-party\website`。
-- 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`；商品從 Firestore 讀取。
+- 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`、匯款資訊設定 `/admin/settings`；商品從 Firestore 讀取；購物車 `/cart`、結帳 `/checkout`、訂單頁 `/order/[id]`、查詢訂單 `/order`。
+- 尚未做：後台訂單管理（核對收款、改狀態、登錄物流）。
 - Firebase 專案 `paw-party`（免費 Spark 方案）：已建立 Firestore（Standard 版、正式版模式，也就是預設全鎖）；已啟用 Email＋密碼登入。
 - 登入方式：以 Email 為主；電話簡訊需要付費方案，已決定暫不使用；LINE 登入之後再評估。
 
 ## 已決定的營運方式
-- **訂購**：客人不用登入會員。加入購物車 → 填收件資料 → 送出訂單 → 網站顯示訂單編號與匯款資訊 → 客人匯款；老闆在後台核對收款、標記「已收款」、登錄物流單號。**不串接金流與物流服務**。
+- **訂購**：客人不用登入會員。加入購物車 → 填收件資料 → 送出訂單 → 網站顯示訂單編號與匯款資訊 → 客人自己匯款、回報匯款末五碼；老闆在後台核對收款、標記「已收款」、登錄物流單號。**不串接金流與物流服務**。
+  - 購物車存在客人瀏覽器（localStorage），只存商品編號與數量；價格一律從 Firestore 讀取，送出前再讀一次最新價格。價格空白的商品不能加入購物車。
+  - 結帳欄位：姓名、手機（09 開頭 10 碼）、收件資訊（地址或超商店名店號）、備註（選填）；有防機器人欄位，並防止重複送出。
+  - 一筆訂單用同一個隨機 ID 同時寫兩份：`orders/{id}`（完整資料含個資，只有管理員能讀）、`orderStatus/{id}`（公開狀態，不含個資，知道 ID 才能單筆讀取，不能列出全部）。
+  - 訂單狀態：`pending` 待匯款（預設）、`paid` 已收款、`shipped` 已出貨、`completed` 完成、`cancelled` 已取消。
+  - 匯款回報：客人在 `/order/[id]` 填末五碼，寫入 `orderStatus` 的 `remittanceLast5`、`remittanceReportedAt`（伺服器時間）。狀態仍是待匯款，畫面顯示「已回報匯款，等待確認」；已收款後就不能再改。後台訂單管理要顯示「客人已回報匯款」。
+  - 匯款資訊存在 `settings/payment`（所有人可讀、只有管理員可寫），在 `/admin/settings` 編輯；沒設定時顯示「匯款資訊請洽官方 LINE」。
+  - 訂單總金額由客人瀏覽器計算，規則無法核對單價，**老闆在後台核對收款時要確認金額**。
 - **寄倉**：客人私訊官方 LINE，由老闆手動在後台登錄；客人登入會員後只能查看自己的寄倉。
-- **官方 LINE 按鈕**：網站各處都要放（網址之後提供）。
+- **官方 LINE 按鈕**：網站各處都要放，用共用元件 `components/LineButton.tsx`。網址寫在 `.env.local` 的 `NEXT_PUBLIC_LINE_URL`；沒有網址時顯示灰色「LINE 即將開放」。
 - **管理員**：老闆的 Firebase UID 是 `wIP0UJxPk7MBO0bxBDq7o9ngbWc2`，只有這個 UID 能管理資料。權限一律在 `firestore.rules` 用 **UID** 判斷，不用 Email 判斷；前端畫面判斷只是輔助。
 - **商品資料**：存在 Firestore 的 `products` 集合（所有人可讀、只有管理員可寫）。`data/products.ts` 只當備用與匯入來源。價格、原價用**整數新台幣**，可空白（空白顯示「價格洽詢中」）。
 - **規則發布**：`firestore.rules` 由老闆手動複製到 Firebase 主控台發布。不使用 Firebase CLI 部署、Cloud Functions、Firebase Storage。

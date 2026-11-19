@@ -5,6 +5,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ===== 共用檢查 =====
+
     // 管理員（老闆）：用 Firebase UID 判斷，不用 Email
     function isAdmin() {
       return request.auth != null
@@ -20,7 +22,18 @@ service cloud.firestore {
       return value == null || value is string;
     }
 
-    // 商品資料格式檢查
+    // 文字長度在 min～max 之間
+    function isText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    // 欄位剛好是這些（不能多、不能少）
+    function hasExactKeys(data, keys) {
+      return data.keys().hasAll(keys) && data.keys().hasOnly(keys);
+    }
+
+    // ===== 商品 products =====
+
     function isValidProduct(data) {
       return data.keys().hasOnly([
           'name', 'english', 'category', 'tagline', 'description', 'emoji',
@@ -47,6 +60,100 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow create, update: if isAdmin() && isValidProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // ===== 訂單 orders（完整資料，含個資）=====
+
+    // 客人新增訂單的格式檢查
+    // 必須和 orderStatus/{同一個 ID} 在同一批次一起寫入，且編號、金額一致
+    function isValidNewOrder(orderId) {
+      let d = request.resource.data;
+      let pub = getAfter(/databases/$(database)/documents/orderStatus/$(orderId)).data;
+      return hasExactKeys(d, [
+          'orderNo', 'name', 'phone', 'shipping', 'note',
+          'items', 'total', 'status', 'createdAt'
+        ])
+        && isText(d.orderNo, 1, 20)
+        && isText(d.name, 1, 30)
+        && d.phone is string && d.phone.matches('^09[0-9]{8}$')
+        && isText(d.shipping, 1, 200)
+        && isText(d.note, 0, 300)
+        && d.items is list && d.items.size() >= 1 && d.items.size() <= 30
+        && d.total is int && d.total > 0 && d.total <= 1000000
+        && d.status == 'pending'
+        && d.createdAt == request.time
+        && pub.orderNo == d.orderNo
+        && pub.total == d.total;
+    }
+
+    // 任何人只能新增，不能讀、改、刪；管理員全部可以
+    match /orders/{orderId} {
+      allow create: if isAdmin() || isValidNewOrder(orderId);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ===== 訂單公開狀態 orderStatus（不含個資）=====
+
+    // 客人新增時的格式檢查：狀態必須是待匯款，物流與匯款欄位必須是空的
+    function isValidNewOrderStatus(orderId) {
+      let d = request.resource.data;
+      return hasExactKeys(d, [
+          'orderNo', 'status', 'total', 'items',
+          'shippingCarrier', 'trackingNo',
+          'remittanceLast5', 'remittanceReportedAt',
+          'createdAt', 'updatedAt'
+        ])
+        && isText(d.orderNo, 1, 20)
+        && d.status == 'pending'
+        && d.total is int && d.total > 0 && d.total <= 1000000
+        && d.items is list && d.items.size() >= 1 && d.items.size() <= 30
+        && d.shippingCarrier == null
+        && d.trackingNo == null
+        && d.remittanceLast5 == null
+        && d.remittanceReportedAt == null
+        && d.createdAt == request.time
+        && d.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/orders/$(orderId));
+    }
+
+    // 客人回報匯款：只能改末五碼與回報時間，且只在「待匯款」時可以
+    function isRemittanceReport() {
+      return resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['remittanceLast5', 'remittanceReportedAt'])
+        && request.resource.data.remittanceLast5 is string
+        && request.resource.data.remittanceLast5.matches('^[0-9]{5}$')
+        && request.resource.data.remittanceReportedAt == request.time;
+    }
+
+    match /orderStatus/{orderId} {
+      // 知道訂單 ID 才能單筆讀取；只有管理員能列出全部
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isAdmin() || isValidNewOrderStatus(orderId);
+      allow update: if isAdmin() || isRemittanceReport();
+      allow delete: if isAdmin();
+    }
+
+    // ===== 設定 settings =====
+
+    function isValidPayment(data) {
+      return hasExactKeys(data, [
+          'bankName', 'bankCode', 'accountNumber', 'accountName', 'note'
+        ])
+        && isText(data.bankName, 0, 100)
+        && isText(data.bankCode, 0, 100)
+        && isText(data.accountNumber, 0, 100)
+        && isText(data.accountName, 0, 100)
+        && isText(data.note, 0, 100);
+    }
+
+    // 匯款資訊：所有人可讀；只有管理員能寫
+    match /settings/{settingId} {
+      allow read: if settingId == 'payment';
+      allow create, update: if isAdmin() && settingId == 'payment'
+        && isValidPayment(request.resource.data);
       allow delete: if isAdmin();
     }
 
