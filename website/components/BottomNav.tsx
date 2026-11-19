@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const items = [
   { href: "/", label: "首頁", icon: "🏠" },
   { href: "/shop", label: "商城", icon: "🛍️" },
-  { href: null, label: "寄倉", icon: "📦" },
+  { href: "/member", label: "寄倉", icon: "📦" },
   { href: null, label: "LINE", icon: "💬" },
 ];
 
@@ -21,7 +21,9 @@ export default function BottomNav() {
           const isActive =
             item.href === "/"
               ? pathname === "/"
-              : item.href !== null && pathname.startsWith(item.href);
+              : item.href === "/member"
+                ? pathname.startsWith("/member") || pathname.startsWith("/login")
+                : item.href !== null && pathname.startsWith(item.href);
 
           const content = (
             <>
