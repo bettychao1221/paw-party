@@ -49,7 +49,10 @@ export function authErrorMessage(error: unknown): string {
     case "unavailable":
       return "網路連線有問題，請檢查網路後再試。";
     case "permission-denied":
-      return "沒有權限做這件事。請確認已用管理員帳號登入，且資料庫規則已發布。";
+      // 權限提示只給管理員看；一般客人看到簡單的說明
+      return auth.currentUser?.uid === ADMIN_UID
+        ? "沒有權限做這件事。請確認已用管理員帳號登入，且資料庫規則已發布。"
+        : "讀取失敗，請重新整理或稍後再試。";
     default:
       return "發生錯誤，請稍後再試。";
   }

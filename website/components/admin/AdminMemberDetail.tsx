@@ -5,6 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import { authErrorMessage } from "@/lib/firebase";
 import { todayString } from "@/lib/fsValue";
+import { downloadCsv } from "@/lib/csv";
 import { MEMBER_NOTE_LIMIT, fetchMember, saveMemberAdminNote, type Member } from "@/lib/members";
 import {
   STOCK_LIMITS,
@@ -63,7 +64,7 @@ export default function AdminMemberDetail({ params }: { params: Promise<{ uid: s
 
   return (
     <main className="min-h-screen bg-cream pb-28 text-ink">
-      <AdminHeader backHref="/admin/members" backLabel="會員列表" title="📦 會員寄倉" />
+      <AdminHeader backHref="/admin/members" backLabel="寄倉總覽" title="📦 會員寄倉" />
       <section className="px-4 pt-4">
         {state.kind === "loading" && <p className="text-lg text-ink-soft">載入中…</p>}
         {state.kind === "notFound" && <p className={boxClass + " text-lg font-bold"}>找不到這位會員。</p>}
@@ -84,7 +85,7 @@ export default function AdminMemberDetail({ params }: { params: Promise<{ uid: s
               productNames={state.productNames}
               onAdded={reload}
             />
-            <LogList logs={state.logs} onChanged={reload} />
+            <LogList email={state.member.email} logs={state.logs} onChanged={reload} />
             <MemberNote member={state.member} />
           </>
         )}
@@ -254,10 +255,44 @@ function AddLogForm({
   );
 }
 
-function LogList({ logs, onChanged }: { logs: StockLog[]; onChanged: () => Promise<void> }) {
+function LogList({
+  email,
+  logs,
+  onChanged,
+}: {
+  email: string;
+  logs: StockLog[];
+  onChanged: () => Promise<void>;
+}) {
+  function handleExport() {
+    downloadCsv(`寄倉流水_${email || "會員"}_${todayString()}.csv`, [
+      ["日期", "商品", "類型", "數量", "備註", "狀態", "作廢原因"],
+      ...logs.map((log) => [
+        log.occurredOn,
+        log.product,
+        STOCK_TYPE_LABELS[log.type],
+        log.type === "in" ? log.quantity : -log.quantity,
+        log.note,
+        log.voided ? "已作廢" : "有效",
+        log.voidReason ?? "",
+      ]),
+    ]);
+  }
+
   return (
     <div className={boxClass}>
-      <p className="text-lg font-bold">流水記錄</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-lg font-bold">流水記錄</p>
+        {logs.length > 0 && (
+          <button
+            type="button"
+            onClick={handleExport}
+            className="rounded-full bg-brand px-4 py-3 text-base font-bold text-ink"
+          >
+            ⬇️ 匯出此會員流水 CSV
+          </button>
+        )}
+      </div>
       {logs.length === 0 ? (
         <p className="mt-2 text-base text-ink-soft">沒有紀錄。</p>
       ) : (

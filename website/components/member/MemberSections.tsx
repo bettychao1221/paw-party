@@ -63,7 +63,7 @@ export default function MemberSections({ user }: { user: User }) {
   if (error) {
     return (
       <p role="alert" className="mt-6 rounded-2xl border-2 border-brand bg-brand-soft px-4 py-3 text-base font-bold">
-        ⚠️ 讀取會員資料失敗：{error}
+        ⚠️ {error}
       </p>
     );
   }

@@ -22,8 +22,12 @@
 - Next.js 16.4.6（App Router、沒有 src 資料夾）、TypeScript、Tailwind CSS；專案在 `D:\paw-party\website`。
 - 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`、匯款資訊設定 `/admin/settings`；商品從 Firestore 讀取；購物車 `/cart`、結帳 `/checkout`、訂單頁 `/order/[id]`、查詢訂單 `/order`。
 - 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/[id]`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。列表預設篩選「進行中」；已取消的訂單可刪除（含「刪除全部已取消訂單」，分段批次每批最多 400 個刪除動作）。
-- 會員寄倉與出貨：會員頁 `/member`（我的寄倉、出貨申請、我的訂單）；後台 `/admin/members`（Email 搜尋、相同 Email 警告）、`/admin/members/[uid]`（餘額、流水、新增入庫出庫、作廢、刪除、備註）、`/admin/shipments`、`/admin/shipments/[id]`（餘額對照、確認出貨、取消、刪除）。
+- 會員寄倉與出貨：會員頁 `/member`（我的寄倉、出貨申請、我的訂單）；後台 `/admin/members`＝**寄倉總覽表格**（每列會員、每欄商品餘額、總件數、最近異動日期、合計列；Email 搜尋、「只顯示有寄倉的會員」預設開、相同 Email 警告；匯出 CSV、匯入 CSV）、`/admin/members/[uid]`（餘額、流水、新增入庫出庫、作廢、刪除、備註）、`/admin/shipments`、`/admin/shipments/[id]`（餘額對照、確認出貨、取消、刪除）。
 - 結帳頁會顯示登入狀態；沒登入也能下單。
+- **CSV**（`lib/csv.ts`，自己寫的解析，不裝套件）：匯出一律 UTF-8 加 BOM；讀檔先試 UTF-8，失敗改用 Big5（Excel 舊格式）。
+  - 匯出：寄倉總覽（Email、各商品餘額、總件數、合計列）、單一會員流水（`/admin/members/[uid]`）。
+  - 匯入（`lib/stockImport.ts`）：欄位 Email、商品、數量、日期（選填，預設今天）、備註（選填）；數量正數＝入庫、負數＝出庫；Email 轉小寫、去空白比對。先預覽（可匯入筆數、找不到會員的 Email、格式錯誤列與行號），**全部沒問題才能匯入**（避免只匯一部分、重傳造成重複），畫面上再按一次確認；writeBatch 每批最多 400 次寫入；備註自動加「CSV 匯入」；一次最多 2000 列。
+- 錯誤訊息：權限錯誤時，管理員看到「請確認管理員登入、規則已發布」的提示；一般客人只看到「讀取失敗，請重新整理或稍後再試」。
 - Firebase 專案 `paw-party`（免費 Spark 方案）：已建立 Firestore（Standard 版、正式版模式，也就是預設全鎖）；已啟用 Email＋密碼登入。
 - 登入方式：以 Email 為主；電話簡訊需要付費方案，已決定暫不使用；LINE 登入之後再評估。
 

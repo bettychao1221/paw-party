@@ -76,7 +76,23 @@ export function computeBalances(logs: StockLog[]): Map<string, number> {
   return new Map([...balances.entries()].sort((a, b) => a[0].localeCompare(b[0], "zh-Hant")));
 }
 
+// 最近異動日期（不含作廢）；沒有就回傳 null
+export function lastActivity(logs: StockLog[]): string | null {
+  let latest: string | null = null;
+  for (const log of logs) {
+    if (log.voided) continue;
+    if (!latest || log.occurredOn > latest) latest = log.occurredOn;
+  }
+  return latest;
+}
+
 // ---- 以下為後台使用（規則只允許管理員）----
+
+// 讀全部會員的流水（寄倉總覽用）
+export async function fetchAllStockLogs(): Promise<StockLog[]> {
+  const snapshot = await getDocs(collection(db, "stockLogs"));
+  return snapshot.docs.map((d) => fromDoc(d.id, d.data()));
+}
 
 export type NewStockLog = {
   uid: string;
