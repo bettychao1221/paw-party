@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
@@ -26,7 +27,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <BottomNav />
+        {/* 導覽列要看「目前在哪一頁」，用 Suspense 讓它在網頁打開後再補上 */}
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
       </body>
     </html>
   );

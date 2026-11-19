@@ -15,8 +15,8 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e9e0d4] bg-[#faf7f1]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <ul className="grid grid-cols-4">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <ul className="grid grid-cols-4 gap-1 px-2 py-1.5">
         {items.map((item) => {
           const isActive =
             item.href === "/"
@@ -26,9 +26,7 @@ export default function BottomNav() {
           const content = (
             <>
               <span className="text-xl">{item.icon}</span>
-              <span className="mt-0.5 text-[11px] font-semibold">
-                {item.label}
-              </span>
+              <span className="mt-0.5 text-sm font-semibold">{item.label}</span>
             </>
           );
 
@@ -37,14 +35,15 @@ export default function BottomNav() {
               {item.href ? (
                 <Link
                   href={item.href}
-                  className={`flex flex-col items-center py-2 ${
-                    isActive ? "text-[#80634f]" : "text-[#9a8878]"
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex flex-col items-center rounded-xl py-1.5 ${
+                    isActive ? "bg-brand font-bold text-ink" : "text-ink-soft"
                   }`}
                 >
                   {content}
                 </Link>
               ) : (
-                <span className="flex flex-col items-center py-2 text-[#c4b8aa]">
+                <span className="flex flex-col items-center py-1.5 text-ink-muted opacity-60">
                   {content}
                 </span>
               )}
