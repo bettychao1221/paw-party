@@ -1,13 +1,18 @@
 import Link from "next/link";
 import LitterCarousel from "@/components/LitterCarousel";
 import { productUrl } from "@/lib/urls";
+import { LINE_URL } from "@/components/LineButton";
 
-// href 為 null 代表功能還沒做好，會顯示成灰色、不能點
-const entries = [
+// href 為 null 代表還不能用，會顯示成灰色、不能點
+// external 代表外部網址（官方 LINE），會開新分頁
+const entries: { href: string | null; icon: string; title: string; note: string; external?: boolean }[] = [
   { href: "/shop", icon: "🛍️", title: "逛商品", note: "全部商品" },
-  { href: null, icon: "📦", title: "我的寄倉", note: "開發中" },
+  { href: "/member", icon: "📦", title: "我的寄倉", note: "查看寄倉與訂單" },
   { href: productUrl("5"), icon: "🎨", title: "客製化", note: "專屬需求" },
-  { href: null, icon: "💬", title: "LINE 聯絡", note: "開發中" },
+  // LINE 網址沿用 LineButton 的 LINE_URL（來自 .env.local 的 NEXT_PUBLIC_LINE_URL）
+  LINE_URL
+    ? { href: LINE_URL, icon: "💬", title: "LINE 聯絡", note: "官方 LINE 詢問", external: true }
+    : { href: null, icon: "💬", title: "LINE 聯絡", note: "即將開放" },
 ];
 
 export default function Home() {
@@ -57,6 +62,23 @@ export default function Home() {
                 </span>
               </>
             );
+
+            const cardClass =
+              "flex flex-col items-start rounded-2xl border border-line bg-surface p-4 transition active:scale-95";
+
+            if (entry.href && entry.external) {
+              return (
+                <a
+                  key={entry.title}
+                  href={entry.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cardClass}
+                >
+                  {content}
+                </a>
+              );
+            }
 
             return entry.href ? (
               <Link
