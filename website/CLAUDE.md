@@ -20,9 +20,18 @@
 
 ## 專案現況
 - Next.js 16.4.6（App Router、沒有 src 資料夾）、TypeScript、Tailwind CSS；專案在 `D:\paw-party\website`。
-- 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、商品資料檔 `data/products.ts`。
+- 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`；商品從 Firestore 讀取。
 - Firebase 專案 `paw-party`（免費 Spark 方案）：已建立 Firestore（Standard 版、正式版模式，也就是預設全鎖）；已啟用 Email＋密碼登入。
 - 登入方式：以 Email 為主；電話簡訊需要付費方案，已決定暫不使用；LINE 登入之後再評估。
+
+## 已決定的營運方式
+- **訂購**：客人不用登入會員。加入購物車 → 填收件資料 → 送出訂單 → 網站顯示訂單編號與匯款資訊 → 客人匯款；老闆在後台核對收款、標記「已收款」、登錄物流單號。**不串接金流與物流服務**。
+- **寄倉**：客人私訊官方 LINE，由老闆手動在後台登錄；客人登入會員後只能查看自己的寄倉。
+- **官方 LINE 按鈕**：網站各處都要放（網址之後提供）。
+- **管理員**：老闆的 Firebase UID 是 `wIP0UJxPk7MBO0bxBDq7o9ngbWc2`，只有這個 UID 能管理資料。權限一律在 `firestore.rules` 用 **UID** 判斷，不用 Email 判斷；前端畫面判斷只是輔助。
+- **商品資料**：存在 Firestore 的 `products` 集合（所有人可讀、只有管理員可寫）。`data/products.ts` 只當備用與匯入來源。價格、原價用**整數新台幣**，可空白（空白顯示「價格洽詢中」）。
+- **規則發布**：`firestore.rules` 由老闆手動複製到 Firebase 主控台發布。不使用 Firebase CLI 部署、Cloud Functions、Firebase Storage。
+- 後台網址 `/admin`，入口只放在管理員的會員頁，**不放在前台導覽列**。
 
 ## 範圍
 - 目前：官網與商品、會員登入、客人查詢自己的寄倉餘量與入庫出庫紀錄、老闆後台登錄寄倉、客人按「出貨申請」、老闆在後台看到申請清單。

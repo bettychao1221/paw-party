@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { auth, authErrorMessage } from "@/lib/firebase";
+import { ADMIN_UID, auth, authErrorMessage } from "@/lib/firebase";
 
 export default function MemberPage() {
   const router = useRouter();
@@ -65,6 +65,16 @@ export default function MemberPage() {
               寄倉餘量與紀錄即將開放查詢。
             </p>
           </div>
+
+          {/* 後台入口：只有管理員看得到（不放在前台導覽列） */}
+          {user.uid === ADMIN_UID && (
+            <Link
+              href="/admin"
+              className="mt-4 block w-full rounded-full bg-brand py-5 text-center text-xl font-bold text-ink shadow-sm transition active:scale-95"
+            >
+              🛠️ 進入後台
+            </Link>
+          )}
 
           {error && (
             <p

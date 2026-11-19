@@ -1,6 +1,7 @@
 // Firebase 初始化：連線設定從 .env.local 讀取，不寫在程式碼裡
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // 注意：每個值都要直接寫 process.env.NEXT_PUBLIC_xxx，Next.js 才讀得到
 const firebaseConfig = {
@@ -16,6 +17,11 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+// 管理員（老闆）的 Firebase UID。
+// 這裡只用來決定後台畫面要不要顯示；真正的保護在 firestore.rules。
+export const ADMIN_UID = "wIP0UJxPk7MBO0bxBDq7o9ngbWc2";
 
 // 把 Firebase 的英文錯誤代碼換成簡單的繁體中文
 export function authErrorMessage(error: unknown): string {
@@ -40,7 +46,10 @@ export function authErrorMessage(error: unknown): string {
     case "auth/too-many-requests":
       return "嘗試太多次了，請稍等幾分鐘再試。";
     case "auth/network-request-failed":
+    case "unavailable":
       return "網路連線有問題，請檢查網路後再試。";
+    case "permission-denied":
+      return "沒有權限做這件事。請確認已用管理員帳號登入，且資料庫規則已發布。";
     default:
       return "發生錯誤，請稍後再試。";
   }

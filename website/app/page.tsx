@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { products } from "@/data/products";
+import LitterCarousel from "@/components/LitterCarousel";
 
 // href 為 null 代表功能還沒做好，會顯示成灰色、不能點
 const entries = [
@@ -10,8 +10,6 @@ const entries = [
 ];
 
 export default function Home() {
-  const litters = products.filter((product) => product.category === "cat-litter");
-
   return (
     <main className="min-h-screen bg-surface pb-28 text-ink">
       {/* 頂部：品牌名稱 */}
@@ -91,25 +89,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="mt-4 flex snap-x gap-3 overflow-x-auto px-4 [scrollbar-width:none]">
-          {litters.map((product) => (
-            <Link
-              key={product.id}
-              href={`/shop/${product.id}`}
-              className="w-48 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface transition active:scale-95"
-            >
-              <div className="flex aspect-square items-center justify-center bg-brand-soft">
-                <span className="text-6xl">{product.emoji}</span>
-              </div>
-              <div className="p-3">
-                <h3 className="text-lg font-bold">{product.name}</h3>
-                <p className="mt-1 text-sm leading-6 text-ink-soft">
-                  {product.tagline}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <LitterCarousel />
       </section>
 
       {/* 品牌故事：位置先留著，內容之後再換成你想寫的 */}

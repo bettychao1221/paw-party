@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { products, categories } from "@/data/products";
+import { categories } from "@/data/products";
+import Price from "@/components/Price";
+import { useShopProducts } from "@/lib/useShopProducts";
 
 export default function ShopPage() {
   const [active, setActive] = useState("all");
+  const { products, loading } = useShopProducts();
 
   const list =
     active === "all"
@@ -47,31 +50,50 @@ export default function ShopPage() {
       {/* 商品區 */}
       <section className="px-4 pt-5">
         <h1 className="text-2xl font-bold">逛商品</h1>
-        <p className="mt-1 text-sm text-ink-muted">共 {list.length} 項商品</p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {list.map((product) => (
-            <Link
-              key={product.id}
-              href={`/shop/${product.id}`}
-              className="overflow-hidden rounded-2xl border border-line bg-surface transition active:scale-95"
-            >
-              <div className="relative flex aspect-square items-center justify-center bg-cream">
-                <span className="text-6xl">{product.emoji}</span>
-                <span className="absolute left-2 top-2 rounded-full bg-brand px-2.5 py-0.5 text-xs font-bold text-ink">
-                  {product.label}
-                </span>
-              </div>
+        {loading ? (
+          <p className="mt-4 text-base text-ink-soft">載入中…</p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-ink-muted">共 {list.length} 項商品</p>
 
-              <div className="p-3">
-                <h2 className="text-lg font-bold">{product.name}</h2>
-                <p className="mt-1 text-sm leading-6 text-ink-soft">
-                  {product.tagline}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+            {list.length === 0 && (
+              <p className="mt-6 text-base text-ink-soft">這個分類目前沒有商品。</p>
+            )}
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {list.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/shop/${product.id}`}
+                  className="overflow-hidden rounded-2xl border border-line bg-surface transition active:scale-95"
+                >
+                  <div className="relative flex aspect-square items-center justify-center bg-cream">
+                    <span className="text-6xl">{product.emoji}</span>
+                    {product.label && (
+                      <span className="absolute left-2 top-2 rounded-full bg-brand px-2.5 py-0.5 text-xs font-bold text-ink">
+                        {product.label}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-3">
+                    <h2 className="text-lg font-bold">{product.name}</h2>
+                    <p className="mt-1 text-sm leading-6 text-ink-soft">
+                      {product.tagline}
+                    </p>
+                    <div className="mt-2">
+                      <Price
+                        price={product.price}
+                        originalPrice={product.originalPrice}
+                      />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </section>
     </main>
   );

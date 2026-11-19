@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// 肉球派對 Firestore 資料庫規則
+// 發布方式：複製整份內容，貼到 Firebase 主控台 → Firestore Database → 規則 → 發布
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 管理員（老闆）：用 Firebase UID 判斷，不用 Email
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == "wIP0UJxPk7MBO0bxBDq7o9ngbWc2";
+    }
+
+    // 金額：整數或空白（null）
+    function isPriceOrNull(value) {
+      return value == null || (value is int && value >= 0);
+    }
+
+    function isTextOrNull(value) {
+      return value == null || value is string;
+    }
+
+    // 商品資料格式檢查
+    function isValidProduct(data) {
+      return data.keys().hasOnly([
+          'name', 'english', 'category', 'tagline', 'description', 'emoji',
+          'label', 'price', 'originalPrice', 'published', 'sortOrder',
+          'image', 'videoUrl', 'model3DUrl'
+        ])
+        && data.name is string && data.name.size() > 0
+        && data.english is string
+        && data.category is string
+        && data.tagline is string
+        && data.description is string
+        && data.emoji is string
+        && data.label is string
+        && isPriceOrNull(data.price)
+        && isPriceOrNull(data.originalPrice)
+        && data.published is bool
+        && data.sortOrder is int
+        && isTextOrNull(data.image)
+        && isTextOrNull(data.videoUrl)
+        && isTextOrNull(data.model3DUrl);
+    }
+
+    // 商品：所有人可讀；只有管理員能新增、修改、刪除
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // 其他集合：沒有列在上面的，一律不開放（預設全鎖）
+  }
+}
