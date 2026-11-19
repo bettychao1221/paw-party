@@ -5,10 +5,12 @@ import Price from "@/components/Price";
 import AddToCartButton from "@/components/AddToCartButton";
 import CartButton from "@/components/CartButton";
 import LineButton from "@/components/LineButton";
+import { useSearchParams } from "next/navigation";
 import { useShopProducts } from "@/lib/useShopProducts";
 
-// 商品頁內容：從 Firestore 讀取，只顯示已上架的商品
-export default function ProductDetail({ id }: { id: string }) {
+// 商品頁內容：商品 ID 從網址 ?id= 取得；從 Firestore 讀取，只顯示已上架的商品
+export default function ProductDetail() {
+  const id = useSearchParams().get("id") ?? "";
   const { products, loading } = useShopProducts();
   const product = products.find((item) => item.id === id);
 

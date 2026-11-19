@@ -17,6 +17,7 @@ import {
 import { STATUS_LABELS, fetchMyOrders, type MyOrder } from "@/lib/orders";
 import { formatPrice } from "@/lib/products";
 import { formatDateTime } from "@/lib/adminOrders";
+import { orderUrl } from "@/lib/urls";
 
 type Data = { logs: StockLog[]; requests: ShipRequest[]; orders: MyOrder[] };
 
@@ -352,7 +353,7 @@ function MyOrders({ orders }: { orders: MyOrder[] }) {
           {orders.map((o) => (
             <li key={o.id}>
               <Link
-                href={`/order/${o.id}`}
+                href={orderUrl(o.id)}
                 className="block rounded-2xl border border-line bg-surface p-4 transition active:scale-[0.98]"
               >
                 <div className="flex items-start justify-between gap-3">

@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# firebase（部署時產生的暫存與紀錄）
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

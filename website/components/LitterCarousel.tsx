@@ -4,6 +4,7 @@ import Link from "next/link";
 import Price from "@/components/Price";
 import AddToCartButton from "@/components/AddToCartButton";
 import { useShopProducts } from "@/lib/useShopProducts";
+import { productUrl } from "@/lib/urls";
 
 // 首頁「貓砂系列」：從 Firestore 讀取已上架的貓砂商品
 export default function LitterCarousel() {
@@ -25,7 +26,7 @@ export default function LitterCarousel() {
           key={product.id}
           className="flex w-48 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface"
         >
-        <Link href={`/shop/${product.id}`} className="block flex-1 transition active:scale-95">
+        <Link href={productUrl(product.id)} className="block flex-1 transition active:scale-95">
           <div className="flex aspect-square items-center justify-center bg-brand-soft">
             <span className="text-6xl">{product.emoji}</span>
           </div>

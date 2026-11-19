@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import { authErrorMessage } from "@/lib/firebase";
@@ -18,6 +18,7 @@ import {
   type ShipRequest,
 } from "@/lib/shipments";
 import { formatDateTime } from "@/lib/adminOrders";
+import { adminMemberUrl } from "@/lib/urls";
 
 type LoadState =
   | { kind: "loading" }
@@ -26,6 +27,7 @@ type LoadState =
   | { kind: "ready"; request: ShipRequest; member: Member | null; balances: Map<string, number> };
 
 async function load(id: string): Promise<LoadState> {
+  if (!id) return { kind: "notFound" }; // 網址沒有帶 ?id=
   try {
     const request = await fetchShipRequest(id);
     if (!request) return { kind: "notFound" };
@@ -40,8 +42,9 @@ const boxClass = "mt-4 rounded-2xl bg-surface p-5";
 const inputClass =
   "mt-2 w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-lg text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none";
 
-export default function AdminShipmentDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function AdminShipmentDetail() {
+  // 申請代碼從網址 ?id= 取得
+  const id = useSearchParams().get("id") ?? "";
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
@@ -128,7 +131,7 @@ function Detail({
         )}
         {member && (
           <Link
-            href={`/admin/members/${member.uid}`}
+            href={adminMemberUrl(member.uid)}
             className="mt-3 inline-block text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
           >
             查看這位會員的寄倉紀錄 →

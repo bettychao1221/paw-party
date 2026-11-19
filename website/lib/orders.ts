@@ -275,11 +275,15 @@ export async function savePaymentSettings(settings: PaymentSettings): Promise<vo
   await setDoc(paymentRef(), settings);
 }
 
-// 從客人貼上的文字中取出訂單 ID（可以是完整網址或只有 ID）
+// 從客人貼上的文字中取出訂單 ID（20 碼），支援：
+// - 新網址：https://…/order/?id=xxxx（或 /order?id=xxxx）
+// - 舊網址：https://…/order/xxxx
+// - 直接貼代碼：xxxx
 export function extractOrderId(input: string): string | null {
   const text = input.trim();
   if (!text) return null;
-  const match = text.match(/\/order\/([A-Za-z0-9]+)/);
-  const id = match ? match[1] : text;
+  const fromQuery = text.match(/[?&]id=([A-Za-z0-9]+)/);
+  const fromPath = text.match(/\/order\/([A-Za-z0-9]{20})(?![A-Za-z0-9])/);
+  const id = fromQuery ? fromQuery[1] : fromPath ? fromPath[1] : text;
   return /^[A-Za-z0-9]{20}$/.test(id) ? id : null;
 }

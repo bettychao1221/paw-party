@@ -14,18 +14,25 @@ const items: { href: string | null; label: string; icon: string; external?: bool
 ];
 
 export default function BottomNav() {
-  const pathname = usePathname();
+  // 網址結尾有沒有「/」都視為同一頁（靜態網站設定 trailingSlash）
+  const raw = usePathname() || "/";
+  const pathname = raw.length > 1 ? raw.replace(/\/+$/, "") : raw;
+  const inSection = (...prefixes: string[]) =>
+    prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <ul className="grid grid-cols-4 gap-1 px-2 py-1.5">
         {items.map((item) => {
+          // 商城：商品頁、購物車、結帳、訂單頁也算；寄倉：會員頁與登入頁
           const isActive =
             item.href === "/"
               ? pathname === "/"
               : item.href === "/member"
-                ? pathname.startsWith("/member") || pathname.startsWith("/login")
-                : item.href !== null && !item.external && pathname.startsWith(item.href);
+                ? inSection("/member", "/login")
+                : item.href === "/shop"
+                  ? inSection("/shop", "/cart", "/checkout", "/order")
+                  : false;
 
           const content = (
             <>

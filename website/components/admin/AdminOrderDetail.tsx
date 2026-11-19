@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import { authErrorMessage } from "@/lib/firebase";
@@ -27,6 +27,7 @@ type LoadState =
   | { kind: "ready"; order: AdminOrder };
 
 async function load(id: string): Promise<LoadState> {
+  if (!id) return { kind: "notFound" }; // 網址沒有帶 ?id=
   try {
     const order = await fetchAdminOrder(id);
     return order ? { kind: "ready", order } : { kind: "notFound" };
@@ -39,8 +40,9 @@ const boxClass = "mt-4 rounded-2xl bg-surface p-5";
 const inputClass =
   "mt-2 w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-lg text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none";
 
-export default function AdminOrderDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function AdminOrderDetail() {
+  // 訂單代碼從網址 ?id= 取得
+  const id = useSearchParams().get("id") ?? "";
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {

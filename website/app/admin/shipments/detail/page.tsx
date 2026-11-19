@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import AdminGuard from "@/components/admin/AdminGuard";
-import AdminMemberDetail from "@/components/admin/AdminMemberDetail";
+import AdminShipmentDetail from "@/components/admin/AdminShipmentDetail";
 
-// 後台會員寄倉詳細頁：資料在瀏覽器端讀取（寫法同 /admin/orders/[id]）
-export default function AdminMemberPage({ params }: PageProps<"/admin/members/[uid]">) {
+// 後台出貨申請詳細頁：網址是 /admin/shipments/detail/?id=申請代碼
+export default function AdminShipmentPage() {
   return (
     <AdminGuard>
       <Suspense
@@ -13,7 +13,7 @@ export default function AdminMemberPage({ params }: PageProps<"/admin/members/[u
           </main>
         }
       >
-        <AdminMemberDetail params={params} />
+        <AdminShipmentDetail />
       </Suspense>
     </AdminGuard>
   );

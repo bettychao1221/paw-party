@@ -10,6 +10,7 @@ import { fetchMembers, type Member } from "@/lib/members";
 import { computeBalances, fetchAllStockLogs, lastActivity, type StockLog } from "@/lib/stock";
 import { downloadCsv } from "@/lib/csv";
 import { todayString } from "@/lib/fsValue";
+import { adminMemberUrl } from "@/lib/urls";
 
 export default function AdminMembersPage() {
   return (
@@ -214,7 +215,7 @@ function StockOverview() {
                     {visible.map((r) => (
                       <tr
                         key={r.uid}
-                        onClick={() => router.push(`/admin/members/${r.uid}`)}
+                        onClick={() => router.push(adminMemberUrl(r.uid))}
                         className="cursor-pointer border-b border-line active:bg-cream"
                       >
                         <td className={`${stickyCell} bg-surface`}>

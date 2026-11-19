@@ -13,6 +13,7 @@ import {
   type ShipStatus,
 } from "@/lib/shipments";
 import { formatDateTime } from "@/lib/adminOrders";
+import { adminShipmentUrl } from "@/lib/urls";
 
 export default function AdminShipmentsPage() {
   return (
@@ -91,7 +92,7 @@ function ShipmentList() {
             {list.map((r) => (
               <li key={r.id}>
                 <Link
-                  href={`/admin/shipments/${r.id}`}
+                  href={adminShipmentUrl(r.id)}
                   className={`block rounded-2xl bg-surface p-4 transition active:scale-[0.98] ${
                     r.status === "pending" ? "border-4 border-brand" : "border border-line"
                   }`}

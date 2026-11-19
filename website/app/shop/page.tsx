@@ -7,6 +7,7 @@ import Price from "@/components/Price";
 import AddToCartButton from "@/components/AddToCartButton";
 import CartButton from "@/components/CartButton";
 import { useShopProducts } from "@/lib/useShopProducts";
+import { productUrl } from "@/lib/urls";
 
 export default function ShopPage() {
   const [active, setActive] = useState("all");
@@ -69,7 +70,7 @@ export default function ShopPage() {
                   key={product.id}
                   className="flex flex-col overflow-hidden rounded-2xl border border-line bg-surface"
                 >
-                <Link href={`/shop/${product.id}`} className="block flex-1 transition active:scale-95">
+                <Link href={productUrl(product.id)} className="block flex-1 transition active:scale-95">
                   <div className="relative flex aspect-square items-center justify-center bg-cream">
                     <span className="text-6xl">{product.emoji}</span>
                     {product.label && (

@@ -10,6 +10,7 @@ import LineButton from "@/components/LineButton";
 import { clearCart, saveLastOrderId, useCart } from "@/lib/cart";
 import { LIMITS, priceCart, submitOrder, type PricedCart } from "@/lib/orders";
 import { formatPrice } from "@/lib/products";
+import { orderUrl } from "@/lib/urls";
 
 const inputClass =
   "mt-2 w-full rounded-2xl border-2 border-line bg-surface px-4 py-4 text-lg text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none";
@@ -88,7 +89,7 @@ export default function CheckoutPage() {
       );
       saveLastOrderId(id);
       clearCart();
-      router.replace(`/order/${id}`);
+      router.replace(orderUrl(id));
     } catch (err) {
       setError(
         err instanceof Error && err.message.startsWith("有商品")

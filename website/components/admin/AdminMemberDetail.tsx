@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AdminHeader from "@/components/admin/AdminHeader";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import { authErrorMessage } from "@/lib/firebase";
@@ -27,6 +28,7 @@ type LoadState =
   | { kind: "ready"; member: Member; logs: StockLog[]; productNames: string[] };
 
 async function load(uid: string): Promise<LoadState> {
+  if (!uid) return { kind: "notFound" }; // 網址沒有帶 ?uid=
   try {
     const [member, logs, products] = await Promise.all([
       fetchMember(uid),
@@ -44,8 +46,9 @@ const boxClass = "mt-4 rounded-2xl bg-surface p-5";
 const inputClass =
   "mt-2 w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-lg text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none";
 
-export default function AdminMemberDetail({ params }: { params: Promise<{ uid: string }> }) {
-  const { uid } = use(params);
+export default function AdminMemberDetail() {
+  // 會員 UID 從網址 ?uid= 取得
+  const uid = useSearchParams().get("uid") ?? "";
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {

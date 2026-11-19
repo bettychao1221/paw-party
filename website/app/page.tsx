@@ -1,11 +1,12 @@
 import Link from "next/link";
 import LitterCarousel from "@/components/LitterCarousel";
+import { productUrl } from "@/lib/urls";
 
 // href 為 null 代表功能還沒做好，會顯示成灰色、不能點
 const entries = [
   { href: "/shop", icon: "🛍️", title: "逛商品", note: "全部商品" },
   { href: null, icon: "📦", title: "我的寄倉", note: "開發中" },
-  { href: "/shop/5", icon: "🎨", title: "客製化", note: "專屬需求" },
+  { href: productUrl("5"), icon: "🎨", title: "客製化", note: "專屬需求" },
   { href: null, icon: "💬", title: "LINE 聯絡", note: "開發中" },
 ];
 

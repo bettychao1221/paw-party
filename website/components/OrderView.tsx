@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import LineButton from "@/components/LineButton";
 import { saveLastOrderId } from "@/lib/cart";
@@ -33,8 +33,7 @@ async function loadOrder(id: string): Promise<LoadState> {
   }
 }
 
-export default function OrderView({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function OrderView({ id }: { id: string }) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
@@ -65,7 +64,7 @@ export default function OrderView({ params }: { params: Promise<{ id: string }> 
             <p className="text-6xl">🔍</p>
             <h1 className="mt-4 text-2xl font-bold">找不到這筆訂單</h1>
             <p className="mt-2 text-base text-ink-soft">請確認訂單網址是否完整。</p>
-            <Link href="/order" className="mt-6 block w-full rounded-full bg-brand py-4 text-lg font-bold text-ink">
+            <Link href="/order/" className="mt-6 block w-full rounded-full bg-brand py-4 text-lg font-bold text-ink">
               重新查詢
             </Link>
           </div>

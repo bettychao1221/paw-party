@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import AdminGuard from "@/components/admin/AdminGuard";
 import AdminOrderDetail from "@/components/admin/AdminOrderDetail";
 
-// 後台訂單詳細頁：資料在瀏覽器端讀取（寫法同 components/OrderView.tsx）
-export default function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]">) {
+// 後台訂單詳細頁：網址是 /admin/orders/detail/?id=訂單代碼
+export default function AdminOrderPage() {
   return (
     <AdminGuard>
       <Suspense
@@ -13,7 +13,7 @@ export default function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]
           </main>
         }
       >
-        <AdminOrderDetail params={params} />
+        <AdminOrderDetail />
       </Suspense>
     </AdminGuard>
   );

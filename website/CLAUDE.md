@@ -20,16 +20,27 @@
 
 ## 專案現況
 - Next.js 16.4.6（App Router、沒有 src 資料夾）、TypeScript、Tailwind CSS；專案在 `D:\paw-party\website`。
-- 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`、匯款資訊設定 `/admin/settings`；商品從 Firestore 讀取；購物車 `/cart`、結帳 `/checkout`、訂單頁 `/order/[id]`、查詢訂單 `/order`。
-- 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/[id]`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。列表預設篩選「進行中」；已取消的訂單可刪除（含「刪除全部已取消訂單」，分段批次每批最多 400 個刪除動作）。
-- 會員寄倉與出貨：會員頁 `/member`（我的寄倉、出貨申請、我的訂單）；後台 `/admin/members`＝**寄倉總覽表格**（每列會員、每欄商品餘額、總件數、最近異動日期、合計列；Email 搜尋、「只顯示有寄倉的會員」預設開、相同 Email 警告；匯出 CSV、匯入 CSV）、`/admin/members/[uid]`（餘額、流水、新增入庫出庫、作廢、刪除、備註）、`/admin/shipments`、`/admin/shipments/[id]`（餘額對照、確認出貨、取消、刪除）。
+- 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/item/?id=`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`、匯款資訊設定 `/admin/settings`；商品從 Firestore 讀取；購物車 `/cart`、結帳 `/checkout`、訂單頁 `/order/?id=`（沒帶 id 就是查詢訂單頁）。
+- 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/detail/?id=`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。列表預設篩選「進行中」；已取消的訂單可刪除（含「刪除全部已取消訂單」，分段批次每批最多 400 個刪除動作）。
+- 會員寄倉與出貨：會員頁 `/member`（我的寄倉、出貨申請、我的訂單）；後台 `/admin/members`＝**寄倉總覽表格**（每列會員、每欄商品餘額、總件數、最近異動日期、合計列；Email 搜尋、「只顯示有寄倉的會員」預設開、相同 Email 警告；匯出 CSV、匯入 CSV）、`/admin/members/detail/?uid=`（餘額、流水、新增入庫出庫、作廢、刪除、備註）、`/admin/shipments`、`/admin/shipments/detail/?id=`（餘額對照、確認出貨、取消、刪除）。
 - 結帳頁會顯示登入狀態；沒登入也能下單。
 - **CSV**（`lib/csv.ts`，自己寫的解析，不裝套件）：匯出一律 UTF-8 加 BOM；讀檔先試 UTF-8，失敗改用 Big5（Excel 舊格式）。
-  - 匯出：寄倉總覽（Email、各商品餘額、總件數、合計列）、單一會員流水（`/admin/members/[uid]`）。
+  - 匯出：寄倉總覽（Email、各商品餘額、總件數、合計列）、單一會員流水（`/admin/members/detail/?uid=`）。
   - 匯入（`lib/stockImport.ts`）：欄位 Email、商品、數量、日期（選填，預設今天）、備註（選填）；數量正數＝入庫、負數＝出庫；Email 轉小寫、去空白比對。先預覽（可匯入筆數、找不到會員的 Email、格式錯誤列與行號），**全部沒問題才能匯入**（避免只匯一部分、重傳造成重複），畫面上再按一次確認；writeBatch 每批最多 400 次寫入；備註自動加「CSV 匯入」；一次最多 2000 列。
 - 錯誤訊息：權限錯誤時，管理員看到「請確認管理員登入、規則已發布」的提示；一般客人只看到「讀取失敗，請重新整理或稍後再試」。
 - Firebase 專案 `paw-party`（免費 Spark 方案）：已建立 Firestore（Standard 版、正式版模式，也就是預設全鎖）；已啟用 Email＋密碼登入。
 - 登入方式：以 Email 為主；電話簡訊需要付費方案，已決定暫不使用；LINE 登入之後再評估。
+
+## 部署（Firebase Hosting，免費 Spark 方案）
+- 網站是**靜態網站**：`next.config.ts` 設定 `output: 'export'`、`trailingSlash: true`、`images.unoptimized: true`；`npm run build` 產生 `out` 資料夾。不用 Vercel、App Hosting、Cloud Functions、Firebase Storage，不綁卡。
+- `cacheComponents`、`partialPrefetching` 需要伺服器，和靜態輸出不相容，**不要開**。
+- **網址格式**：靜態網站無法預先產生帶隨機代碼的頁面，所以一律用「固定網址 + 查詢參數」，網址集中在 `lib/urls.ts`：
+  - 商品 `/shop/item/?id=`、訂單 `/order/?id=`（沒帶 id 是查詢頁）
+  - 後台 `/admin/orders/detail/?id=`、`/admin/members/detail/?uid=`、`/admin/shipments/detail/?id=`
+  - 讀查詢參數用 `useSearchParams`，外面一定要包 `<Suspense>`。**不要再新增 `[id]` 這種動態路由資料夾**。
+- `firebase.json` **只設定 hosting**（public `out`、cleanUrls、trailingSlash、安全標頭、`_next/static` 長快取）。**不可加入 firestore／functions／storage 設定**，以免部署時覆蓋 `firestore.rules`；規則一律由老闆在主控台手動發布。`.firebaserc` 預設專案 `paw-party`。
+- 部署指令（老闆自己執行，用 npx，不全域安裝）：`npm run build` → `npx firebase-tools@15.37.0 deploy --only hosting`（第一次要先 `npx firebase-tools@15.37.0 login`）。
+- **環境變數（`.env.local` 的 `NEXT_PUBLIC_*`）是在「打包時」寫進網頁的**。改了 Firebase 設定或 LINE 網址（`NEXT_PUBLIC_LINE_URL`），一定要**重新 `npm run build` 再部署**，網站才會更新。
 
 ## 已決定的營運方式
 - **訂購**：客人不用登入會員。加入購物車 → 填收件資料 → 送出訂單 → 網站顯示訂單編號與匯款資訊 → 客人自己匯款、回報匯款末五碼；老闆在後台核對收款、標記「已收款」、登錄物流單號。**不串接金流與物流服務**。
@@ -37,7 +48,7 @@
   - 結帳欄位：姓名、手機（09 開頭 10 碼）、收件資訊（地址或超商店名店號）、備註（選填）；有防機器人欄位，並防止重複送出。
   - 一筆訂單用同一個隨機 ID 同時寫兩份：`orders/{id}`（完整資料含個資，只有管理員能讀）、`orderStatus/{id}`（公開狀態，不含個資，知道 ID 才能單筆讀取，不能列出全部）。
   - 訂單狀態：`pending` 待匯款（預設）、`paid` 已收款、`shipped` 已出貨、`completed` 完成、`cancelled` 已取消。
-  - 匯款回報：客人在 `/order/[id]` 填末五碼，寫入 `orderStatus` 的 `remittanceLast5`、`remittanceReportedAt`（伺服器時間）。狀態仍是待匯款，畫面顯示「已回報匯款，等待確認」；已收款後就不能再改。後台訂單管理要顯示「客人已回報匯款」。
+  - 匯款回報：客人在 `/order/?id=` 填末五碼，寫入 `orderStatus` 的 `remittanceLast5`、`remittanceReportedAt`（伺服器時間）。狀態仍是待匯款，畫面顯示「已回報匯款，等待確認」；已收款後就不能再改。後台訂單管理要顯示「客人已回報匯款」。
   - 匯款資訊存在 `settings/payment`（所有人可讀、只有管理員可寫），在 `/admin/settings` 編輯；沒設定時顯示「匯款資訊請洽官方 LINE」。
   - 訂單總金額由客人瀏覽器計算，規則無法核對單價，**老闆在後台核對收款時要確認金額**。
 - **寄倉**：客人私訊官方 LINE，由老闆手動在後台登錄；客人登入會員後只能查看自己的寄倉，並可從會員頁送出「出貨申請」。

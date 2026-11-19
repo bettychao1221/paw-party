@@ -14,6 +14,7 @@ import {
 } from "@/lib/adminOrders";
 import { ORDER_STATUSES, STATUS_LABELS, type OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/products";
+import { adminOrderUrl } from "@/lib/urls";
 
 export default function AdminOrdersPage() {
   return (
@@ -144,7 +145,7 @@ function OrderList() {
               return (
                 <li key={order.id}>
                   <Link
-                    href={`/admin/orders/${order.id}`}
+                    href={adminOrderUrl(order.id)}
                     className={`block rounded-2xl bg-surface p-4 transition active:scale-[0.98] ${
                       reported ? "border-4 border-brand" : "border border-line"
                     }`}
