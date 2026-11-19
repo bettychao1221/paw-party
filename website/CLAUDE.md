@@ -21,7 +21,7 @@
 ## 專案現況
 - Next.js 16.4.6（App Router、沒有 src 資料夾）、TypeScript、Tailwind CSS；專案在 `D:\paw-party\website`。
 - 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`、匯款資訊設定 `/admin/settings`；商品從 Firestore 讀取；購物車 `/cart`、結帳 `/checkout`、訂單頁 `/order/[id]`、查詢訂單 `/order`。
-- 尚未做：後台訂單管理（核對收款、改狀態、登錄物流）。
+- 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/[id]`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。**不提供刪除訂單**。
 - Firebase 專案 `paw-party`（免費 Spark 方案）：已建立 Firestore（Standard 版、正式版模式，也就是預設全鎖）；已啟用 Email＋密碼登入。
 - 登入方式：以 Email 為主；電話簡訊需要付費方案，已決定暫不使用；LINE 登入之後再評估。
 
