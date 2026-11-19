@@ -164,28 +164,26 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-cream pb-28 text-ink">
       <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="px-4 py-3">
           <span className="text-lg font-black">🛠️ 後台</span>
-          <div className="flex gap-4">
-            <Link
-              href="/admin/orders"
-              className="text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
-            >
-              訂單
-            </Link>
-            <Link
-              href="/admin/settings"
-              className="text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
-            >
-              匯款資訊
-            </Link>
-            <Link
-              href="/member"
-              className="text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
-            >
-              會員頁
-            </Link>
-          </div>
+          {/* 後台各功能入口：手機上排成兩排 */}
+          <nav className="mt-2 grid grid-cols-3 gap-2">
+            {[
+              { href: "/admin/orders", label: "📋 訂單" },
+              { href: "/admin/members", label: "👥 會員寄倉" },
+              { href: "/admin/shipments", label: "🚚 出貨申請" },
+              { href: "/admin/settings", label: "🏦 匯款資訊" },
+              { href: "/member", label: "🙂 會員頁" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-xl border-2 border-brand bg-surface px-1 py-2 text-center text-sm font-bold"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
 

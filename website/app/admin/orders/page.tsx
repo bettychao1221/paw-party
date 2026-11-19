@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import AdminGuard from "@/components/admin/AdminGuard";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { authErrorMessage } from "@/lib/firebase";
-import { fetchAdminOrders, formatDateTime, type AdminOrder } from "@/lib/adminOrders";
+import ConfirmAction from "@/components/admin/ConfirmAction";
+import {
+  deleteCancelledOrders,
+  fetchAdminOrders,
+  formatDateTime,
+  type AdminOrder,
+} from "@/lib/adminOrders";
 import { ORDER_STATUSES, STATUS_LABELS, type OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/products";
 
@@ -17,13 +23,44 @@ export default function AdminOrdersPage() {
   );
 }
 
-const FILTERS: (OrderStatus | "all")[] = ["all", ...ORDER_STATUSES];
+// 「進行中」＝待匯款、已收款、已出貨（預設顯示這個）
+type Filter = OrderStatus | "all" | "active";
+const ACTIVE: OrderStatus[] = ["pending", "paid", "shipped"];
+const FILTERS: Filter[] = ["active", "all", ...ORDER_STATUSES];
+const FILTER_LABELS: Record<Filter, string> = { ...STATUS_LABELS, all: "全部", active: "進行中" };
+
+function matches(order: AdminOrder, filter: Filter) {
+  if (filter === "all") return true;
+  if (filter === "active") return ACTIVE.includes(order.status);
+  return order.status === filter;
+}
 
 function OrderList() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const [notice, setNotice] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [filter, setFilter] = useState<Filter>("active");
+
+  async function handleDeleteCancelled() {
+    setDeleting(true);
+    setError("");
+    setNotice("");
+    try {
+      const count = await deleteCancelledOrders(orders);
+      setNotice(`已刪除 ${count} 筆已取消訂單。`);
+    } catch (err) {
+      setError(`${authErrorMessage(err)}（可能只刪了一部分，請重新整理確認）`);
+    } finally {
+      try {
+        setOrders(await fetchAdminOrders());
+      } catch {
+        // 重新讀取失敗時，保留原畫面
+      }
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -42,9 +79,9 @@ function OrderList() {
     };
   }, []);
 
-  const list = filter === "all" ? orders : orders.filter((o) => o.status === filter);
-  const countOf = (f: OrderStatus | "all") =>
-    f === "all" ? orders.length : orders.filter((o) => o.status === f).length;
+  const list = orders.filter((o) => matches(o, filter));
+  const countOf = (f: Filter) => orders.filter((o) => matches(o, f)).length;
+  const cancelledCount = countOf("cancelled");
 
   return (
     <main className="min-h-screen bg-cream pb-28 text-ink">
@@ -63,7 +100,7 @@ function OrderList() {
                 : "border border-line bg-surface text-ink-soft"
             }`}
           >
-            {f === "all" ? "全部" : STATUS_LABELS[f]}
+            {FILTER_LABELS[f]}
             {!loading && ` ${countOf(f)}`}
           </button>
         ))}
@@ -74,6 +111,26 @@ function OrderList() {
           <p role="alert" className="mb-4 rounded-2xl border-2 border-brand bg-brand-soft px-4 py-3 text-base font-bold">
             ⚠️ {error}
           </p>
+        )}
+        {notice && (
+          <p role="status" className="mb-4 rounded-2xl border-2 border-brand bg-surface px-4 py-3 text-base font-bold">
+            ✅ {notice}
+          </p>
+        )}
+
+        {/* 已取消篩選畫面：一次刪除全部已取消訂單 */}
+        {!loading && filter === "cancelled" && cancelledCount > 0 && (
+          <div className="mb-4">
+            <ConfirmAction
+              label={`🗑️ 刪除全部已取消訂單（${cancelledCount} 筆）`}
+              question={`要刪除全部 ${cancelledCount} 筆已取消訂單嗎？`}
+              warning="刪除後無法復原，客人用舊網址查詢會看到「找不到這筆訂單」。"
+              confirmLabel={`確定刪除 ${cancelledCount} 筆`}
+              twice
+              busy={deleting}
+              onConfirm={handleDeleteCancelled}
+            />
+          </div>
         )}
 
         {loading ? (

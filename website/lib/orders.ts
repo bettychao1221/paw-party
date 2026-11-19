@@ -7,9 +7,12 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
   type Timestamp,
 } from "firebase/firestore";
@@ -128,9 +131,11 @@ export type CustomerInfo = {
 };
 
 // 送出訂單：同一個 ID 一次寫入 orders 與 orderStatus（同時成功或同時失敗）
+// uid：登入者下單時填自己的 uid，沒登入是 null
 export async function submitOrder(
   customer: CustomerInfo,
   priced: PricedCart,
+  uid: string | null,
 ): Promise<string> {
   const ref = doc(collection(db, "orders"));
   const id = ref.id;
@@ -139,6 +144,7 @@ export async function submitOrder(
   const batch = writeBatch(db);
   batch.set(ref, {
     orderNo,
+    uid,
     name: customer.name,
     phone: customer.phone,
     shipping: customer.shipping,
@@ -213,6 +219,33 @@ export async function reportRemittance(id: string, last5: string): Promise<void>
     remittanceLast5: last5,
     remittanceReportedAt: serverTimestamp(),
   });
+}
+
+// ---- 會員自己的訂單 ----
+
+export type MyOrder = {
+  id: string;
+  orderNo: string;
+  total: number;
+  status: OrderStatus;
+  createdAt: Date | null;
+};
+
+// 讀綁在這個會員帳號的訂單。不加 orderBy（免建索引），改在前端排序：新的在前
+export async function fetchMyOrders(uid: string): Promise<MyOrder[]> {
+  const snapshot = await getDocs(query(collection(db, "orders"), where("uid", "==", uid)));
+  return snapshot.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        orderNo: typeof data.orderNo === "string" ? data.orderNo : d.id,
+        total: typeof data.total === "number" ? data.total : 0,
+        status: ORDER_STATUSES.includes(data.status) ? (data.status as OrderStatus) : "pending",
+        createdAt: toDate(data.createdAt),
+      };
+    })
+    .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
 }
 
 // ---- 匯款資訊 settings/payment ----

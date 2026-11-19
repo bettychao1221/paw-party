@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { ADMIN_UID, auth, authErrorMessage } from "@/lib/firebase";
+import { useCartCount } from "@/lib/cart";
+import MemberSections from "@/components/member/MemberSections";
 
 export default function MemberPage() {
   const router = useRouter();
+  const cartCount = useCartCount();
   // undefined = 還在確認登入狀態；null = 沒登入
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [error, setError] = useState("");
@@ -58,13 +61,18 @@ export default function MemberPage() {
             <p className="mt-1 break-all text-xl font-bold">{user.email}</p>
           </div>
 
-          {/* 寄倉資料：之後接上資料庫再顯示 */}
-          <div className="mt-4 rounded-2xl border border-line bg-cream p-5">
-            <p className="text-lg font-bold">📦 我的寄倉</p>
-            <p className="mt-1 text-base text-ink-soft">
-              寄倉餘量與紀錄即將開放查詢。
-            </p>
-          </div>
+          {/* 購物車還有商品時（例如從結帳頁來登入），提醒回去結帳 */}
+          {cartCount > 0 && (
+            <Link
+              href="/checkout"
+              className="mt-4 block w-full rounded-full bg-brand py-5 text-center text-xl font-bold text-ink shadow-sm transition active:scale-95"
+            >
+              🛒 購物車有 {cartCount} 件，前往結帳
+            </Link>
+          )}
+
+          {/* 我的寄倉、出貨申請、我的訂單 */}
+          <MemberSections user={user} />
 
           {/* 後台入口：只有管理員看得到（不放在前台導覽列） */}
           {user.uid === ADMIN_UID && (

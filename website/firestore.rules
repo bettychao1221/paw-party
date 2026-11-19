@@ -32,6 +32,20 @@ service cloud.firestore {
       return data.keys().hasAll(keys) && data.keys().hasOnly(keys);
     }
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // 這份資料的 uid 是不是登入者自己
+    function isOwner(uid) {
+      return isSignedIn() && uid == request.auth.uid;
+    }
+
+    // 手機：09 開頭 10 碼
+    function isPhone(value) {
+      return value is string && value.matches('^09[0-9]{8}$');
+    }
+
     // ===== 商品 products =====
 
     function isValidProduct(data) {
@@ -71,9 +85,11 @@ service cloud.firestore {
       let d = request.resource.data;
       let pub = getAfter(/databases/$(database)/documents/orderStatus/$(orderId)).data;
       return hasExactKeys(d, [
-          'orderNo', 'name', 'phone', 'shipping', 'note',
+          'orderNo', 'uid', 'name', 'phone', 'shipping', 'note',
           'items', 'total', 'status', 'createdAt'
         ])
+        // uid：沒登入是 null；登入者只能填自己的 uid
+        && (d.uid == null || (isSignedIn() && d.uid == request.auth.uid))
         && isText(d.orderNo, 1, 20)
         && isText(d.name, 1, 30)
         && d.phone is string && d.phone.matches('^09[0-9]{8}$')
@@ -87,10 +103,13 @@ service cloud.firestore {
         && pub.total == d.total;
     }
 
-    // 任何人只能新增，不能讀、改、刪；管理員全部可以
+    // 任何人都能新增；會員只能讀 uid 等於自己的訂單；不能改、不能刪
+    // 管理員全部可以讀、改；刪除只限「已取消」的訂單
     match /orders/{orderId} {
       allow create: if isAdmin() || isValidNewOrder(orderId);
-      allow read, update, delete: if isAdmin();
+      allow read: if isAdmin() || isOwner(resource.data.uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin() && resource.data.status == 'cancelled';
     }
 
     // ===== 訂單公開狀態 orderStatus（不含個資）=====
@@ -133,7 +152,8 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isAdmin() || isValidNewOrderStatus(orderId);
       allow update: if isAdmin() || isRemittanceReport();
-      allow delete: if isAdmin();
+      // 刪除只限「已取消」（和 orders 一起刪）
+      allow delete: if isAdmin() && resource.data.status == 'cancelled';
     }
 
     // ===== 設定 settings =====
@@ -155,6 +175,106 @@ service cloud.firestore {
       allow create, update: if isAdmin() && settingId == 'payment'
         && isValidPayment(request.resource.data);
       allow delete: if isAdmin();
+    }
+
+    // ===== 會員 members/{uid} =====
+
+    // 客人只能建立自己的會員檔，而且只能有 email、createdAt 兩個欄位
+    function isValidNewMember(uid) {
+      let d = request.resource.data;
+      return isOwner(uid)
+        && hasExactKeys(d, ['email', 'createdAt'])
+        && d.email is string
+        && d.email == request.auth.token.email
+        && d.createdAt == request.time;
+    }
+
+    match /members/{uid} {
+      allow get: if isAdmin() || isOwner(uid);
+      allow list: if isAdmin();
+      allow create: if isAdmin() || isValidNewMember(uid);
+      // 修改（例如 adminNote）、刪除只有管理員
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== 寄倉流水 stockLogs =====
+    //
+    // 注意：規則算不出餘額（規則無法加總多份文件），
+    // 所以「出庫超過餘額」「出貨申請超過餘額」都擋不住，只能靠畫面警告與老闆核對。
+
+    function isValidStockLogFields(d) {
+      return hasExactKeys(d, [
+          'uid', 'product', 'type', 'quantity', 'note', 'occurredOn',
+          'voided', 'voidReason', 'createdAt'
+        ])
+        && isText(d.uid, 1, 128)
+        && isText(d.product, 1, 60)
+        && d.type in ['in', 'out']
+        && d.quantity is int && d.quantity >= 1 && d.quantity <= 100000
+        && isText(d.note, 0, 200)
+        && d.occurredOn is string && d.occurredOn.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.voided is bool
+        && (d.voidReason == null || isText(d.voidReason, 1, 200))
+        && d.createdAt is timestamp;
+    }
+
+    // 新增：一定是未作廢，時間是伺服器時間
+    function isValidNewStockLog() {
+      let d = request.resource.data;
+      return isValidStockLogFields(d)
+        && d.voided == false
+        && d.voidReason == null
+        && d.createdAt == request.time;
+    }
+
+    // 修改：只能「作廢」（填原因），不能改數量、商品等內容
+    function isStockLogVoid() {
+      let d = request.resource.data;
+      return isValidStockLogFields(d)
+        && resource.data.voided == false
+        && d.diff(resource.data).affectedKeys().hasOnly(['voided', 'voidReason'])
+        && d.voided == true
+        && isText(d.voidReason, 1, 200);
+    }
+
+    match /stockLogs/{logId} {
+      // 客人只能讀自己的（查詢時要用 where('uid', '==', 自己的 uid)）
+      allow read: if isAdmin() || isOwner(resource.data.uid);
+      allow create: if isAdmin() && isValidNewStockLog();
+      allow update: if isAdmin() && isStockLogVoid();
+      // 刪除：必須先作廢
+      allow delete: if isAdmin() && resource.data.voided == true;
+    }
+
+    // ===== 出貨申請 shipRequests =====
+
+    function isValidNewShipRequest() {
+      let d = request.resource.data;
+      return hasExactKeys(d, [
+          'uid', 'items', 'name', 'phone', 'shipping', 'note', 'status',
+          'carrier', 'trackingNo', 'adminNote', 'createdAt', 'updatedAt'
+        ])
+        && isOwner(d.uid)
+        && d.items is list && d.items.size() >= 1 && d.items.size() <= 30
+        && isText(d.name, 1, 30)
+        && isPhone(d.phone)
+        && isText(d.shipping, 1, 200)
+        && isText(d.note, 0, 300)
+        && d.status == 'pending'
+        && d.carrier == null
+        && d.trackingNo == null
+        && d.adminNote == null
+        && d.createdAt == request.time
+        && d.updatedAt == request.time;
+    }
+
+    match /shipRequests/{requestId} {
+      // 客人只能讀自己的、只能新增自己的；不能改、不能刪
+      allow read: if isAdmin() || isOwner(resource.data.uid);
+      allow create: if isAdmin() || isValidNewShipRequest();
+      allow update: if isAdmin();
+      // 刪除只限「已出貨」或「已取消」
+      allow delete: if isAdmin() && resource.data.status in ['done', 'cancelled'];
     }
 
     // 其他集合：沒有列在上面的，一律不開放（預設全鎖）

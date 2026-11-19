@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import SiteHeader from "@/components/SiteHeader";
 import LineButton from "@/components/LineButton";
 import { clearCart, saveLastOrderId, useCart } from "@/lib/cart";
@@ -26,6 +28,12 @@ export default function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [confirmed, setConfirmed] = useState<PricedCart | null>(null);
   const submitting = useRef(false); // 防止連按兩次送出
+  // undefined = 還在確認登入狀態；null = 沒登入
+  const [loggedIn, setLoggedIn] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (user) => setLoggedIn(!!user));
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,6 +84,7 @@ export default function CheckoutPage() {
       const id = await submitOrder(
         { name: cleanName, phone: cleanPhone, shipping: cleanShipping, note: cleanNote },
         priced,
+        auth.currentUser?.uid ?? null, // 已登入就記在會員帳號
       );
       saveLastOrderId(id);
       clearCart();
@@ -113,6 +122,23 @@ export default function CheckoutPage() {
       <section className="px-4 pt-5">
         <h1 className="text-3xl font-bold">填寫收件資料</h1>
         <p className="mt-1 text-base text-ink-soft">不用註冊會員，填好就可以送出訂單。</p>
+
+        {loggedIn === true && (
+          <p className="mt-4 rounded-2xl bg-brand-soft px-4 py-3 text-base font-bold">
+            ✅ 已登入，這筆訂單會記在你的會員帳號。
+          </p>
+        )}
+        {loggedIn === false && (
+          <div className="mt-4 rounded-2xl bg-cream px-4 py-3">
+            <p className="text-base">登入後下單，之後可在會員頁查看訂單。</p>
+            <Link
+              href="/login"
+              className="mt-2 inline-block text-base font-bold underline decoration-brand decoration-2 underline-offset-4"
+            >
+              去登入（購物車會保留）→
+            </Link>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
           <label className="block">

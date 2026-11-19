@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
+import ConfirmAction from "@/components/admin/ConfirmAction";
 import { authErrorMessage } from "@/lib/firebase";
 import {
   ADMIN_NOTE_LIMIT,
   NEXT_STEPS,
   changeOrderStatus,
+  deleteOrder,
   fetchAdminOrder,
   formatDateTime,
   recalculateTotal,
@@ -153,6 +156,9 @@ function Detail({ order, onChanged }: { order: AdminOrder; onChanged: () => Prom
 
       {/* 狀態操作 */}
       <StatusActions order={order} onChanged={onChanged} />
+
+      {/* 刪除：只有「已取消」的訂單才顯示 */}
+      {order.status === "cancelled" && <DeleteOrder order={order} />}
 
       {/* 管理員備註 */}
       <AdminNote order={order} />
@@ -378,6 +384,43 @@ function StatusActions({ order, onChanged }: { order: AdminOrder; onChanged: () 
             </button>
           ))}
       </div>
+    </div>
+  );
+}
+
+function DeleteOrder({ order }: { order: AdminOrder }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleDelete() {
+    setBusy(true);
+    setError("");
+    try {
+      await deleteOrder(order);
+      router.replace("/admin/orders");
+    } catch (err) {
+      setError(authErrorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={boxClass}>
+      {error && (
+        <p role="alert" className="mb-3 rounded-2xl bg-brand-soft px-4 py-3 text-base font-bold">
+          ⚠️ {error}
+        </p>
+      )}
+      <ConfirmAction
+        label="🗑️ 刪除訂單"
+        question="要刪除這筆已取消的訂單嗎？"
+        warning="刪除後無法復原，客人用舊網址查詢會看到「找不到這筆訂單」。"
+        confirmLabel="確定刪除"
+        twice
+        busy={busy}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -150,6 +150,32 @@ export async function saveAdminNote(id: string, note: string): Promise<void> {
   });
 }
 
+// 刪除訂單：只有「已取消」的才能刪（規則也會檢查）；同時刪除 orders 與 orderStatus
+export async function deleteOrder(order: AdminOrder): Promise<void> {
+  if (order.status !== "cancelled") throw new Error("not-cancelled");
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "orders", order.id));
+  batch.delete(doc(db, "orderStatus", order.id));
+  await batch.commit();
+}
+
+// 刪除全部已取消訂單：分段批次刪除，每批最多 400 個刪除動作（每筆訂單 2 個）
+export async function deleteCancelledOrders(orders: AdminOrder[]): Promise<number> {
+  const targets = orders.filter((o) => o.status === "cancelled");
+  const perBatch = 200; // 200 筆 × 2 份文件 = 400 個刪除動作
+  let deleted = 0;
+  for (let start = 0; start < targets.length; start += perBatch) {
+    const batch = writeBatch(db);
+    for (const order of targets.slice(start, start + perBatch)) {
+      batch.delete(doc(db, "orders", order.id));
+      batch.delete(doc(db, "orderStatus", order.id));
+    }
+    await batch.commit();
+    deleted += Math.min(perBatch, targets.length - start);
+  }
+  return deleted;
+}
+
 // 依目前商品價格重新計算金額；有商品找不到或沒有價格時，missing 會列出名稱
 export async function recalculateTotal(
   items: AdminOrderItem[],

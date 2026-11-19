@@ -21,7 +21,9 @@
 ## 專案現況
 - Next.js 16.4.6（App Router、沒有 src 資料夾）、TypeScript、Tailwind CSS；專案在 `D:\paw-party\website`。
 - 已完成：首頁、商城列表 `/shop`、商品頁 `/shop/[id]`、底部導覽列、Email 登入／註冊 `/login`、會員頁 `/member`、後台商品管理 `/admin`、匯款資訊設定 `/admin/settings`；商品從 Firestore 讀取；購物車 `/cart`、結帳 `/checkout`、訂單頁 `/order/[id]`、查詢訂單 `/order`。
-- 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/[id]`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。**不提供刪除訂單**。
+- 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/[id]`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。列表預設篩選「進行中」；已取消的訂單可刪除（含「刪除全部已取消訂單」，分段批次每批最多 400 個刪除動作）。
+- 會員寄倉與出貨：會員頁 `/member`（我的寄倉、出貨申請、我的訂單）；後台 `/admin/members`（Email 搜尋、相同 Email 警告）、`/admin/members/[uid]`（餘額、流水、新增入庫出庫、作廢、刪除、備註）、`/admin/shipments`、`/admin/shipments/[id]`（餘額對照、確認出貨、取消、刪除）。
+- 結帳頁會顯示登入狀態；沒登入也能下單。
 - Firebase 專案 `paw-party`（免費 Spark 方案）：已建立 Firestore（Standard 版、正式版模式，也就是預設全鎖）；已啟用 Email＋密碼登入。
 - 登入方式：以 Email 為主；電話簡訊需要付費方案，已決定暫不使用；LINE 登入之後再評估。
 
@@ -34,7 +36,14 @@
   - 匯款回報：客人在 `/order/[id]` 填末五碼，寫入 `orderStatus` 的 `remittanceLast5`、`remittanceReportedAt`（伺服器時間）。狀態仍是待匯款，畫面顯示「已回報匯款，等待確認」；已收款後就不能再改。後台訂單管理要顯示「客人已回報匯款」。
   - 匯款資訊存在 `settings/payment`（所有人可讀、只有管理員可寫），在 `/admin/settings` 編輯；沒設定時顯示「匯款資訊請洽官方 LINE」。
   - 訂單總金額由客人瀏覽器計算，規則無法核對單價，**老闆在後台核對收款時要確認金額**。
-- **寄倉**：客人私訊官方 LINE，由老闆手動在後台登錄；客人登入會員後只能查看自己的寄倉。
+- **寄倉**：客人私訊官方 LINE，由老闆手動在後台登錄；客人登入會員後只能查看自己的寄倉，並可從會員頁送出「出貨申請」。
+  - `members/{uid}`：email、createdAt（＋管理員專用 adminNote）。客人登入後沒有就自動建立；客人只能建立、讀取自己的。
+  - `stockLogs/{id}`（寄倉流水）：uid、product、type（`in` 入庫／`out` 出庫）、quantity、note、occurredOn（YYYY-MM-DD）、voided、voidReason、createdAt。只有管理員能寫，客人只能讀自己的。記錯不改內容，用「作廢」。
+  - **餘額＝同一商品入庫總和 − 出庫總和（不含作廢），由前端加總。Firestore 規則算不出餘額**，所以「出庫超過餘額」「出貨申請超過餘額」規則擋不住，只能靠畫面限制／警告與老闆核對。
+  - `shipRequests/{id}`（出貨申請）：uid、items、name、phone、shipping、note、status（`pending` 待處理／`done` 已出貨／`cancelled` 已取消）、carrier、trackingNo、adminNote、createdAt、updatedAt。客人只能新增、讀取自己的，不能改、刪。後台「確認出貨」用 writeBatch 同時改成已出貨並為每個品項新增出庫流水。
+  - 注意：`members.adminNote`、`shipRequests.adminNote` 客人技術上讀得到（因為是自己的文件），**不要寫私密內容**；真正私密的備註只有 `orders.adminNote`。
+- **會員訂單紀錄**：登入後下單，`orders.uid` 會記登入者 uid（沒登入是 null）；會員頁用 `where('uid','==',uid)` 查詢（不加 orderBy，前端排序，免建索引）。
+- **刪除規則**（規則也有擋）：訂單只能刪「已取消」的（同時刪 `orders` 與 `orderStatus`）；寄倉流水要先「作廢」才能刪；出貨申請只能刪「已出貨」或「已取消」的。刪除都要在畫面上按兩次確認，不用瀏覽器彈窗。客人不能刪除任何資料。
 - **官方 LINE 按鈕**：網站各處都要放，用共用元件 `components/LineButton.tsx`。網址寫在 `.env.local` 的 `NEXT_PUBLIC_LINE_URL`；沒有網址時顯示灰色「LINE 即將開放」。
 - **管理員**：老闆的 Firebase UID 是 `wIP0UJxPk7MBO0bxBDq7o9ngbWc2`，只有這個 UID 能管理資料。權限一律在 `firestore.rules` 用 **UID** 判斷，不用 Email 判斷；前端畫面判斷只是輔助。
 - **商品資料**：存在 Firestore 的 `products` 集合（所有人可讀、只有管理員可寫）。`data/products.ts` 只當備用與匯入來源。價格、原價用**整數新台幣**，可空白（空白顯示「價格洽詢中」）。
@@ -42,7 +51,7 @@
 - 後台網址 `/admin`，入口只放在管理員的會員頁，**不放在前台導覽列**。
 
 ## 範圍
-- 目前：官網與商品、會員登入、客人查詢自己的寄倉餘量與入庫出庫紀錄、老闆後台登錄寄倉、客人按「出貨申請」、老闆在後台看到申請清單。
+- 目前：官網與商品、會員登入、客人查詢自己的寄倉餘量與入庫出庫紀錄、老闆後台登錄寄倉、客人按「出貨申請」、老闆在後台看到申請清單並確認出貨（以上皆已完成）。
 - 出貨通知：先做**後台清單**，不用 LINE 通知；之後再評估 Gmail 通知。
 - 延後但要預留擴充空間：像素虛擬商店、AI 貓咪店員、3D 商品展示（商品資料已預留 `model3DUrl`、`image`、`videoUrl` 欄位）、後台上傳圖片。
 - 客人約 50～60 位。
