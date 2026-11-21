@@ -24,6 +24,15 @@
 - 後台訂單管理：列表 `/admin/orders`（狀態篩選、「客人已回報匯款」標示）、詳細頁 `/admin/orders/detail/?id=`（客人資料、品項、金額核對警告、改狀態、登錄物流、管理員備註）。改狀態用 writeBatch 同時更新 `orders` 與 `orderStatus`；管理員備註 `adminNote` 只存在 `orders`。列表預設篩選「進行中」；已取消的訂單可刪除（含「刪除全部已取消訂單」，分段批次每批最多 400 個刪除動作）。
 - 會員寄倉與出貨：會員頁 `/member`（我的寄倉、出貨申請、我的訂單）；後台 `/admin/members`＝**寄倉總覽表格**（每列會員、每欄商品餘額、總件數、最近異動日期、合計列；Email 搜尋、「只顯示有寄倉的會員」預設開、相同 Email 警告；匯出 CSV、匯入 CSV）、`/admin/members/detail/?uid=`（餘額、流水、新增入庫出庫、作廢、刪除、備註）、`/admin/shipments`、`/admin/shipments/detail/?id=`（餘額對照、確認出貨、取消、刪除）。
 - 結帳頁會顯示登入狀態；沒登入也能下單。
+- **首頁輪播**（階段 2A）：首頁最上方 `components/HomeBanners.tsx`（每 5 秒自動換、可左右滑、圓點、按住暫停、開啟「減少動態效果」時不自動換；2:1 比例、讀取時有同比例骨架；沒有顯示中的輪播圖時整塊不顯示）。後台 `/admin/banners`（新增→自動壓縮→預覽→儲存、編輯標題與連結、上移下移、顯示／隱藏、按兩次刪除；最多 8 張）。資料在 `lib/banners.ts`。
+  - `banners/{id}`：image（data URL）、width、height、title（0～40 字）、linkType（`none`／`product`／`line`／`path`）、linkValue（≤200 字）、sortOrder、active、createdAt、updatedAt。所有人只能讀 `active == true`（查詢一定要帶 `where('active','==',true)`），管理員可讀全部、可寫。不加 orderBy，前端排序。
+  - 連結：product → `productUrl()`；line → `LINE_URL`（沒網址不能點）；path 只允許站內路徑，用 `lib/urls.ts` 的 `isInternalPath()` 檢查（擋 `//外部網址`）。
+  - **沒有啟用 Firestore 本機快取（persistentLocalCache）**：有網路時 getDocs 仍會向伺服器讀，省不到讀取次數；而且快取不會自動清除，後台的訂單個資會留在電腦裡。改用 `fetchActiveBanners()` 的記憶體快取（同一次瀏覽回到首頁不重讀）。
+- **圖片存進 Firestore 的做法與限制**（不用 Firebase Storage，因為要綁卡）：
+  - 共用工具 `lib/imageCompress.ts` 的 `compressImage(file, { maxWidth, maxHeight?, maxLength })`：在瀏覽器用 canvas 縮圖 → 轉 WebP（不支援就 JPEG，JPEG 會鋪白底）→ 品質從 0.85 每次降 0.1 到 0.35，直到 data URL 長度 ≤ maxLength；做不到丟 `ImageCompressError`（訊息是中文，可直接顯示）。回傳 dataUrl、mimeType、width、height、size。之後商品圖、會員頭像重用這個。
+  - Firestore 單一文件上限 1 MiB，所以每張圖要設長度上限（輪播 350000 字元，約 342 KB），一份文件只放一張圖。
+  - 規則只用字串切片 `value[0:23]` 檢查開頭是 `data:image/webp;base64,` 或 `data:image/jpeg;base64,`，不用正規表示式掃整張圖。
+  - 圖片會跟著文件一起下載，**流量算在 Firestore 免費額度（每月 10 GiB 外送流量）**。8 張滿檔約 2.8 MB／次首頁載入，輪播圖數量與大小要節制。
 - **忘記密碼**（階段 1）：`/login` 登入模式有「忘記密碼？」，同一頁切換成重設表單，用 Firebase Auth 的 `sendPasswordResetEmail` 寄信（`auth.languageCode = "zh-TW"`）。不論 Email 有沒有註冊都顯示同一句成功訊息（不透露誰是會員）；寄出後按鈕停用 60 秒並倒數；有「返回登入」。重設信的樣式與寄件者在 Firebase 主控台 Authentication → 範本 設定。
 - **CSV**（`lib/csv.ts`，自己寫的解析，不裝套件）：匯出一律 UTF-8 加 BOM；讀檔先試 UTF-8，失敗改用 Big5（Excel 舊格式）。
   - 匯出：寄倉總覽（Email、各商品餘額、總件數、合計列）、單一會員流水（`/admin/members/detail/?uid=`）。
@@ -69,7 +78,7 @@
 ## 範圍
 - 目前：官網與商品、會員登入、客人查詢自己的寄倉餘量與入庫出庫紀錄、老闆後台登錄寄倉、客人按「出貨申請」、老闆在後台看到申請清單並確認出貨（以上皆已完成）。
 - 出貨通知：先做**後台清單**，不用 LINE 通知；之後再評估 Gmail 通知。
-- 延後但要預留擴充空間：像素虛擬商店、AI 貓咪店員、3D 商品展示（商品資料已預留 `model3DUrl`、`image`、`videoUrl` 欄位）、後台上傳圖片。
+- 延後但要預留擴充空間：像素虛擬商店、AI 貓咪店員、3D 商品展示（商品資料已預留 `model3DUrl`、`image`、`videoUrl` 欄位）、商品圖片與會員頭像上傳（重用 `lib/imageCompress.ts`）。
 - 客人約 50～60 位。
 
 ## 設計規則

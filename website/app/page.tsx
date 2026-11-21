@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LitterCarousel from "@/components/LitterCarousel";
+import HomeBanners from "@/components/HomeBanners";
 import { productUrl } from "@/lib/urls";
 import { LINE_URL } from "@/components/LineButton";
 
@@ -30,6 +31,9 @@ export default function Home() {
           <span className="text-xl">🐾</span>
         </div>
       </header>
+
+      {/* 首頁輪播：後台 /admin/banners 管理；沒有輪播圖時整塊不顯示 */}
+      <HomeBanners />
 
       {/* 主視覺：標語 */}
       <section className="px-4 pt-6">

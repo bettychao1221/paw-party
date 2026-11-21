@@ -177,6 +177,51 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ===== 首頁輪播 banners =====
+    //
+    // 圖片壓縮後以 data URL 字串存在文件裡（不用 Firebase Storage）。
+    // 注意：規則無法計算集合裡有幾份文件，「最多 8 張」只靠後台畫面限制。
+
+    // 圖片：WebP 或 JPEG 的 data URL，長度不超過 350000 字元
+    // 'data:image/webp;base64,' 和 'data:image/jpeg;base64,' 都是 23 個字元
+    // 用字串切片比對開頭，不用正規表示式掃整張圖（比較省、比較快）
+    function isBannerImage(value) {
+      return value is string
+        && value.size() > 23
+        && value.size() <= 350000
+        && value[0:23] in ['data:image/webp;base64,', 'data:image/jpeg;base64,'];
+    }
+
+    function isValidBanner(d) {
+      return hasExactKeys(d, [
+          'image', 'width', 'height', 'title', 'linkType', 'linkValue',
+          'sortOrder', 'active', 'createdAt', 'updatedAt'
+        ])
+        && isBannerImage(d.image)
+        && d.width is int && d.width >= 1 && d.width <= 1200
+        && d.height is int && d.height >= 1 && d.height <= 10000
+        && isText(d.title, 0, 40)
+        && d.linkType in ['none', 'product', 'line', 'path']
+        && isText(d.linkValue, 0, 200)
+        && d.sortOrder is int
+        && d.active is bool
+        && d.updatedAt == request.time;
+    }
+
+    match /banners/{bannerId} {
+      // 一般人只能讀「顯示中」的（查詢要帶 where('active', '==', true)）；管理員可讀全部
+      allow read: if isAdmin() || resource.data.active == true;
+      // 新增：建立時間必須是伺服器時間
+      allow create: if isAdmin()
+        && isValidBanner(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      // 修改：建立時間不能變
+      allow update: if isAdmin()
+        && isValidBanner(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
     // ===== 會員 members/{uid} =====
 
     // 客人只能建立自己的會員檔，而且只能有 email、createdAt 兩個欄位

@@ -7,3 +7,14 @@ export const orderUrl = (id: string) => `/order/?id=${q(id)}`;
 export const adminOrderUrl = (id: string) => `/admin/orders/detail/?id=${q(id)}`;
 export const adminMemberUrl = (uid: string) => `/admin/members/detail/?uid=${q(uid)}`;
 export const adminShipmentUrl = (id: string) => `/admin/shipments/detail/?id=${q(id)}`;
+
+// 是不是「站內路徑」：必須 / 開頭。
+// 擋掉 //example.com（瀏覽器會當成外部網址）、反斜線、空白與控制字元。
+export function isInternalPath(value: string): boolean {
+  return (
+    value.length <= 200 &&
+    value.startsWith("/") &&
+    !value.startsWith("//") &&
+    !/[\\\s\u0000-\u001f\u007f]/.test(value)
+  );
+}

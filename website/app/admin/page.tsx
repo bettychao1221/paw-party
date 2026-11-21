@@ -173,6 +173,7 @@ export default function AdminPage() {
               { href: "/admin/members", label: "👥 會員寄倉" },
               { href: "/admin/shipments", label: "🚚 出貨申請" },
               { href: "/admin/settings", label: "🏦 匯款資訊" },
+              { href: "/admin/banners", label: "🖼️ 輪播" },
               { href: "/member", label: "🙂 會員頁" },
             ].map((link) => (
               <Link
