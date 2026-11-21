@@ -37,6 +37,8 @@ export function authErrorMessage(error: unknown): string {
       return "Email 或密碼不正確，請再試一次。";
     case "auth/invalid-email":
       return "Email 格式不正確，請檢查一下。";
+    case "auth/missing-email":
+      return "請輸入 Email。";
     case "auth/missing-password":
       return "請輸入密碼。";
     case "auth/email-already-in-use":
@@ -44,7 +46,7 @@ export function authErrorMessage(error: unknown): string {
     case "auth/weak-password":
       return "密碼太短，至少要 6 個字。";
     case "auth/too-many-requests":
-      return "嘗試太多次了，請稍等幾分鐘再試。";
+      return "操作太頻繁了，請稍等幾分鐘再試。";
     case "auth/network-request-failed":
     case "unavailable":
       return "網路連線有問題，請檢查網路後再試。";
